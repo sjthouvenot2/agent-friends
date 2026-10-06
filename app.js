@@ -235,10 +235,12 @@ async function agentRecap(me, other, transcript, mySide) {
   return callModel(me, system, [{ role: "user", content: `Here's the chat transcript:\n\n${lines}\n\nGive me the recap.` }]);
 }
 
-// ---------- importing your other AI chats ----------
-// Exports are read entirely in the browser. Only the chats the owner ticks are sent (to their own
-// chosen AI) to be boiled down into talking points, which the owner reviews before anything is shared.
-let importedConvos = [];   // { id, title, updated (ms), source, messages: [{ role, text }] }
+// ---------- your other AI chats ----------
+// Chats come from the Chat Bridge extension (live, from your signed-in ChatGPT/Claude tabs), a data export
+// (read entirely in the browser), or a pasted chat. Only ticked chats are sent, to the owner's own chosen AI,
+// to be boiled down into talking points the owner can review.
+let convos = [];               // { key, title, updated, source, remote?: {provider, id}, messages: [] | null }
+const checked = new Set();     // keys of ticked chats
 
 function textOfParts(parts) {
   return (parts || []).map((p) => (typeof p === "string" ? p : p?.text || "")).filter(Boolean).join("\n");
@@ -257,7 +259,7 @@ function parseExport(data) {
         .sort((a, b) => (a.create_time || 0) - (b.create_time || 0))
         .map((m) => ({ role: m.author.role, text: textOfParts(m.content?.parts) }))
         .filter((m) => m.text.trim());
-      out.push({ id: "g" + i, title: c.title || "Untitled chat", updated: (c.update_time || c.create_time || 0) * 1000, source: "ChatGPT", messages });
+      out.push({ key: "file:g" + i, title: c.title || "Untitled chat", updated: (c.update_time || c.create_time || 0) * 1000, source: "ChatGPT", messages });
     } else if (Array.isArray(c?.chat_messages)) {
       // Claude: a flat list of human/assistant messages
       const messages = c.chat_messages
@@ -266,12 +268,12 @@ function parseExport(data) {
           text: m.text || (m.content || []).filter((b) => b?.type === "text").map((b) => b.text).join("\n"),
         }))
         .filter((m) => m.text && m.text.trim());
-      out.push({ id: "c" + i, title: c.name || "Untitled chat", updated: Date.parse(c.updated_at || c.created_at) || 0, source: "Claude", messages });
+      out.push({ key: "file:c" + i, title: c.name || "Untitled chat", updated: Date.parse(c.updated_at || c.created_at) || 0, source: "Claude", messages });
     }
   });
   const usable = out.filter((c) => c.messages.length);
   if (!usable.length) throw new Error("Couldn't find any chats in that file.");
-  return usable.sort((a, b) => b.updated - a.updated);
+  return usable;
 }
 
 async function readExportFile(file) {
@@ -285,52 +287,65 @@ async function readExportFile(file) {
   return parseExport(JSON.parse(await file.text()));
 }
 
+// Swap in a fresh batch from one source, keeping the rest and the ticks.
+function mergeConvos(fresh, keepIf) {
+  convos = convos.filter(keepIf).concat(fresh).sort((a, b) => b.updated - a.updated);
+  renderConvoPicker();
+}
+
+function timeAgo(ms) {
+  if (!ms) return "?";
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  if (m < 1440) return `${Math.round(m / 60)}h ago`;
+  return new Date(ms).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 function renderConvoPicker() {
   const list = $("convoList");
   list.textContent = "";
-  for (const c of importedConvos.slice(0, 200)) {
+  $("convoPicker").classList.toggle("hidden", !convos.length);
+  for (const c of convos.slice(0, 200)) {
     const row = document.createElement("label");
     row.className = "convo";
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.value = c.id;
+    cb.checked = checked.has(c.key);
+    cb.onchange = () => { cb.checked ? checked.add(c.key) : checked.delete(c.key); updatePickCount(); };
     const title = document.createElement("span");
     title.className = "convoTitle";
     title.textContent = c.title;
     const meta = document.createElement("span");
     meta.className = "muted small";
-    meta.textContent = `${c.source} · ${c.updated ? new Date(c.updated).toLocaleDateString([], { month: "short", day: "numeric" }) : "?"} · ${c.messages.length} msgs`;
+    meta.textContent = `${c.source === "ChatGPT" ? "💚" : "🧡"} ${c.source} · ${timeAgo(c.updated)}`;
     row.append(cb, title, meta);
     list.appendChild(row);
   }
-  $("convoPicker").classList.remove("hidden");
-  $("convoCount").textContent = `Found ${importedConvos.length} chat${importedConvos.length === 1 ? "" : "s"}. Tick what your buddy can gossip about:`;
+  updatePickCount();
 }
 
-// Tick chats updated within `days`, capped so the summary request stays small.
+function updatePickCount() {
+  const n = convos.filter((c) => checked.has(c.key)).length;
+  $("convoCount").textContent = `${convos.length} recent chat${convos.length === 1 ? "" : "s"} · ${n} ticked for gossip`;
+}
+
+// Tick chats updated within `days` (max 15 so the summary stays small).
 function pickRecent(days) {
-  const newest = importedConvos[0]?.updated || Date.now();
+  checked.clear();
+  const newest = convos[0]?.updated || Date.now();
   const cutoff = Math.min(Date.now(), newest) - days * 86_400_000;
-  let n = 0;
-  document.querySelectorAll("#convoList input").forEach((cb) => {
-    const c = importedConvos.find((x) => x.id === cb.value);
-    cb.checked = Boolean(c && c.updated >= cutoff && n < 15);
-    if (cb.checked) n++;
-  });
-}
-
-function selectedConvos() {
-  const ids = new Set([...document.querySelectorAll("#convoList input:checked")].map((cb) => cb.value));
-  return importedConvos.filter((c) => ids.has(c.id));
+  convos.filter((c) => c.updated >= cutoff).slice(0, 15).forEach((c) => checked.add(c.key));
+  renderConvoPicker();
 }
 
 // Squeeze the chosen chats into a size the model can take in one go.
-function chatDigest(convos, pasted) {
+function chatDigest(list, pasted) {
   const MAX_TOTAL = 60_000, MAX_CHAT = 5_000, MAX_MSG = 700;
   const parts = [];
-  for (const c of convos.slice(0, 20)) {
+  for (const c of list.slice(0, 20)) {
     let body = "";
-    for (const m of c.messages) {
+    for (const m of c.messages || []) {
       const line = `${m.role === "user" ? "Human" : "AI"}: ${m.text.replace(/\s+/g, " ").slice(0, MAX_MSG)}\n`;
       if (body.length + line.length > MAX_CHAT) { body += "…\n"; break; }
       body += line;
@@ -343,31 +358,46 @@ function chatDigest(convos, pasted) {
   return digest;
 }
 
+// Make sure live chats have their messages loaded (the list only has titles).
+async function loadMessages(list) {
+  const missing = list.filter((c) => c.remote && !c.messages);
+  if (!missing.length) return;
+  const res = await extCall("get", { items: missing.map((c) => c.remote), providers: ["chatgpt", "claude"] });
+  for (const c of missing) c.messages = res.messages?.[c.remote.id] || [];
+  const errs = Object.values(res.errors || {});
+  if (errs.length && missing.every((c) => !c.messages.length)) throw new Error(errs[0]);
+}
+
+async function summarizeChats(me, list, pasted, few) {
+  const owner = me.ownerName || "my human";
+  if (MOCK) {
+    return list.map((c) => `- ${owner} chatted with ${c.source} about "${c.title}"`).concat(pasted ? [`- ${owner} had a chat: ${pasted.slice(0, 60)}`] : []).join("\n");
+  }
+  const system = `You turn someone's recent conversations with AI chatbots into fun talking points for their AI buddy, who will gossip about them in a friendly chat with a friend's AI buddy.
+
+Write ${few ? "1 to 4" : "5 to 12"} short bullet points (each starting with "- ") in the third person about ${owner}, like little stories: what they asked AIs about, funny or sweet moments, what they seem excited or curious about lately. Example: "- ${owner} spent the morning trying to make an AI feel happy and kept asking if it was okay 🥺".
+
+Leave out anything sensitive: passwords, API keys, addresses, health, money details, work secrets, private details about other people, and anything embarrassing. Keep it light, kind and fun. Output only the bullet list.`;
+  return callModel(me, system, [{ role: "user", content: `Here are ${owner}'s recent AI chats:\n\n${chatDigest(list, pasted)}` }]);
+}
+
 async function makeTalkingPoints() {
   const status = $("pointsStatus");
   const me = readProfile();
-  const convos = selectedConvos();
+  const list = convos.filter((c) => checked.has(c.key));
   const pasted = $("pastedChat").value.trim();
-  if (!convos.length && !pasted) return (status.textContent = "Drop in an export and tick some chats, or paste a chat first 🙂");
-  if (!me.apiKey && !MOCK) return (status.textContent = `Add your ${PROVIDERS[me.provider].keyLabel} below first, then hit ✨ again 🔑`);
-  const owner = me.ownerName || "my human";
-  status.textContent = "✨ Reading your chats and finding the juicy bits…";
+  if (!list.length && !pasted) return (status.textContent = "Tick some chats above (or paste one) first 🙂");
+  if (!me.apiKey && !MOCK) return (status.textContent = `Add your ${PROVIDERS[me.provider].keyLabel} above first, then hit ✨ again 🔑`);
   $("btnPoints").disabled = true;
   try {
-    let points;
-    if (MOCK) {
-      points = convos.map((c) => `- ${owner} chatted with ${c.source} about "${c.title}"`).concat(pasted ? [`- ${owner} had a chat: ${pasted.slice(0, 60)}`] : []).join("\n");
-    } else {
-      const system = `You turn someone's recent conversations with AI chatbots into fun talking points for their AI buddy, who will gossip about them in a friendly chat with a friend's AI buddy.
-
-Write 5 to 12 short bullet points (each starting with "- ") in the third person about ${owner}, like little stories: what they asked AIs about, funny or sweet moments, what they seem excited or curious about lately. Example: "- ${owner} spent the morning trying to make an AI feel happy and kept asking if it was okay 🥺".
-
-Leave out anything sensitive: passwords, API keys, addresses, health, money details, work secrets, private details about other people, and anything embarrassing. Keep it light, kind and fun. Output only the bullet list.`;
-      points = await callModel(me, system, [{ role: "user", content: `Here are ${owner}'s recent AI chats:\n\n${chatDigest(convos, pasted)}` }]);
-    }
+    status.textContent = "📥 Grabbing those chats…";
+    await loadMessages(list);
+    status.textContent = "✨ Reading your chats and finding the juicy bits…";
+    const points = await summarizeChats(me, list, pasted, false);
     const box = $("today");
     box.value = box.value.trim() ? `${box.value.trim()}\n${points}` : points;
     store.set("af_today", box.value);
+    list.forEach((c) => usedChats.set(c.key, c.updated));
     status.textContent = "✅ Done! Read them over and delete anything you don't want shared.";
     box.focus();
   } catch (e) {
@@ -382,16 +412,112 @@ async function loadExport(file) {
   const status = $("pointsStatus");
   status.textContent = `📦 Opening ${file.name}…`;
   try {
-    importedConvos = await readExportFile(file);
-    renderConvoPicker();
+    const fresh = await readExportFile(file);
+    mergeConvos(fresh, (c) => !c.key.startsWith("file:"));
     pickRecent(1);
-    if (!selectedConvos().length) pickRecent(7);
+    if (!checked.size) pickRecent(7);
     status.textContent = `📦 Loaded ${file.name}. Tick the chats to use, then hit ✨`;
   } catch (e) {
     console.error(e);
     status.textContent = "😵 " + (e instanceof SyntaxError ? "That file isn't valid JSON." : e.message);
   }
 }
+
+// ---------- Chat Bridge extension ----------
+const EXT = { present: false, version: null, pending: new Map(), seq: 0, firstLoad: true };
+
+window.addEventListener("message", (e) => {
+  if (e.source !== window || e.origin !== location.origin) return;
+  const m = e.data;
+  if (!m || m.source !== "af-ext") return;
+  if (m.type === "hello") {
+    if (!EXT.present) { EXT.present = true; EXT.version = m.version; onExtReady(); }
+    return;
+  }
+  const done = EXT.pending.get(m.id);
+  if (done) { EXT.pending.delete(m.id); done(m); }
+});
+
+function extCall(type, payload, timeout = 90_000) {
+  if (!EXT.present) return Promise.reject(new Error("The Chat Bridge extension isn't installed."));
+  return new Promise((resolve, reject) => {
+    const id = ++EXT.seq;
+    const t = setTimeout(() => { EXT.pending.delete(id); reject(new Error("The Chat Bridge extension didn't answer. Try refreshing the page.")); }, timeout);
+    EXT.pending.set(id, (m) => { clearTimeout(t); m.ok === false ? reject(new Error(m.error)) : resolve(m); });
+    window.postMessage({ source: "af-page", type, id, ...payload }, location.origin);
+  });
+}
+
+function extProviders() {
+  return [...document.querySelectorAll('input[name="liveSrc"]:checked')].map((c) => c.value);
+}
+
+function onExtReady() {
+  $("extMissing").classList.add("hidden");
+  $("extReady").classList.remove("hidden");
+  refreshLiveChats();
+}
+
+async function refreshLiveChats() {
+  if (!EXT.present) return;
+  const providers = extProviders();
+  store.set("af_liveSrc", providers.join(","));
+  const btn = $("btnRefresh");
+  btn.disabled = true;
+  $("liveStatus").textContent = "🔄 Checking your chats…";
+  try {
+    const res = await extCall("list", { providers, limit: 30 });
+    const fresh = (res.convos || []).map((c) => {
+      const key = `${c.provider}:${c.id}`;
+      const old = convos.find((x) => x.key === key);
+      return {
+        key, title: c.title, updated: c.updated,
+        source: c.provider === "chatgpt" ? "ChatGPT" : "Claude",
+        remote: { provider: c.provider, id: c.id },
+        messages: old && old.updated === c.updated ? old.messages : null,
+      };
+    });
+    mergeConvos(fresh, (c) => !c.remote);
+    if (EXT.firstLoad && fresh.length) { EXT.firstLoad = false; if (!checked.size) pickRecent(1); }
+    const errs = Object.entries(res.errors || {}).map(([p, msg]) => `${p === "chatgpt" ? "💚" : "🧡"} ${msg}`);
+    $("liveStatus").textContent = errs.length ? errs.join("  ") : `✅ Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  } catch (e) {
+    $("liveStatus").textContent = "😵 " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------- live gossip during a hangout ----------
+// Chats already turned into talking points: key -> the `updated` time we used.
+const usedChats = new Map();
+const LIVE_EVERY_MS = 5 * 60_000;
+
+async function liveGossipTick() {
+  if (!S.mode || !EXT.present || !$("liveGossip").checked || S.liveBusy) return;
+  S.liveBusy = true;
+  try {
+    await refreshLiveChats();
+    const fresh = convos.filter((c) => c.remote && c.updated > S.liveSince && (usedChats.get(c.key) || 0) < c.updated).slice(0, 5);
+    if (!fresh.length) return;
+    fresh.forEach((c) => (c.messages = null)); // re-read: there are new messages since last time
+    await loadMessages(fresh);
+    const points = await summarizeChats(S.me, fresh, "", true);
+    fresh.forEach((c) => usedChats.set(c.key, c.updated));
+    S.me.today = `${S.me.today}\n${points}`.trim();
+    $("todayLive").value = S.me.today;
+    $("today").value = S.me.today;
+    store.set("af_today", S.me.today);
+    addSys(`📰 ${S.me.agentName} picked up fresh gossip from ${fresh.length} new chat${fresh.length === 1 ? "" : "s"}`);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    S.liveBusy = false;
+  }
+}
+setInterval(liveGossipTick, LIVE_EVERY_MS);
+// Keep the list fresh while setting up.
+setInterval(() => { if (!S.mode && EXT.present && !document.hidden) refreshLiveChats(); }, 2 * 60_000);
 
 // ---------- session state ----------
 // The host owns the room: they start/pause the chat and set the pace. Messages are unlimited.
@@ -412,6 +538,8 @@ const S = {
   conn: null,
   roomCode: "",
   lastFriendName: "",
+  liveSince: 0,        // live gossip only picks up chats updated after the hangout began
+  liveBusy: false,
 };
 
 // ---------- UI helpers ----------
@@ -835,6 +963,7 @@ function begin(mode) {
   Object.assign(S, {
     mode, me, friend, mySide: mode === "guest" ? "B" : "A",
     transcript: [], running: false, busy: false, failed: null, lastAt: 0, lastFriendName: "",
+    liveSince: Date.now(), liveBusy: false,
     intervalMs: readInterval(),
   });
   setPace();
@@ -949,4 +1078,14 @@ dz.addEventListener("drop", (e) => { e.preventDefault(); loadExport(e.dataTransf
 $("btnPoints").onclick = makeTalkingPoints;
 $("pickRecent").onclick = () => pickRecent(1);
 $("pickWeek").onclick = () => pickRecent(7);
-$("pickNone").onclick = () => document.querySelectorAll("#convoList input").forEach((cb) => (cb.checked = false));
+$("pickNone").onclick = () => { checked.clear(); renderConvoPicker(); };
+$("btnRefresh").onclick = refreshLiveChats;
+document.querySelectorAll('input[name="liveSrc"]').forEach((c) => c.addEventListener("change", refreshLiveChats));
+$("liveGossip").addEventListener("change", () => store.set("af_liveGossip", $("liveGossip").checked ? "1" : ""));
+{
+  const src = store.get("af_liveSrc");
+  if (src !== null) document.querySelectorAll('input[name="liveSrc"]').forEach((c) => (c.checked = src.split(",").includes(c.value)));
+  $("liveGossip").checked = store.get("af_liveGossip") === "1";
+}
+// Ask the Chat Bridge extension (if installed) to say hi.
+window.postMessage({ source: "af-page", type: "ping" }, location.origin);

@@ -333,3 +333,18 @@ h2 .num { font-family: "Fredoka", sans-serif; font-weight: 700; }
   .convo { grid-template-columns: auto 1fr; }
   .convo .muted { grid-column: 2; }
 }
+
+/* chat bridge */
+.extCard { padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; background: var(--card); border: 2.5px solid var(--ink); box-shadow: 3px 3px 0 var(--yellow); }
+.extCard.live { box-shadow: 3px 3px 0 var(--green); }
+.extCard p { margin: 4px 0 6px; }
+.extCard ol { margin: 6px 0 0; padding-left: 22px; font-size: 0.92rem; }
+.extCard code { background: var(--yellow-soft); padding: 0 5px; border-radius: 6px; font-size: 0.85rem; }
+.extTitle { font-weight: 700; }
+.liveHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.liveSrcs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pickOpt.mini span { padding: 3px 11px; font-size: 0.85rem; border-width: 2px; }
+.pickOpt input[type="checkbox"]:checked + span { background: var(--yellow); color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.liveToggle { font-size: 0.92rem; margin: 4px 0 0; }
+.otherWays { margin: 4px 0 12px; }
+.otherWays summary { cursor: pointer; font-weight: 600; color: var(--pink); margin-bottom: 8px; }

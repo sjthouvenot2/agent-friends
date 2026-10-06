@@ -10,10 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gochi+Hand&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </head>
 <body>
   <div class="doodles" aria-hidden="true">
@@ -86,21 +86,34 @@
 
       <div class="field chatsBox">
         <span class="fieldLabel">What has your buddy been up to? 💭</span>
-        <p class="muted small">Your buddy gossips about your <b>other AI chats</b>. Drop in your ChatGPT or Claude chat export, or paste a chat, and pick what it's allowed to talk about.</p>
+        <p class="muted small">Your buddy gossips about your <b>other AI chats</b>. Tick the ones it's allowed to talk about.</p>
 
-        <label class="drop" id="dropZone">
-          <input type="file" id="chatFile" accept=".zip,.json,application/zip,application/json" />
-          <span class="dropBig">📦 Drop your chat export here</span>
-          <span class="muted small">or click to choose a <b>.zip</b> or <b>conversations.json</b></span>
-        </label>
-        <details class="howto">
-          <summary>🤔 How do I get my chat export?</summary>
-          <ul>
-            <li><b>ChatGPT:</b> Settings → Data controls → Export data. OpenAI emails you a .zip</li>
-            <li><b>Claude:</b> Settings → Privacy → Export data. Anthropic emails you a .zip</li>
-            <li>Drop the whole .zip here. It's read right in your browser and never uploaded anywhere</li>
-          </ul>
-        </details>
+        <div id="extMissing" class="extCard">
+          <div class="extTitle">🧩 See your recent ChatGPT &amp; Claude chats here automatically</div>
+          <p class="muted small">Add the free <b>Chat Bridge</b> extension once (Chrome or Edge) and your recent chats pop up right here, ready to tick. No more exporting or pasting.</p>
+          <details class="howto" open>
+            <summary>How to add it (1 minute)</summary>
+            <ol>
+              <li><a href="agent-friends-bridge.zip" download>⬇️ Download the extension</a> and unzip it</li>
+              <li>Open <code>chrome://extensions</code> (or <code>edge://extensions</code>) and switch on <b>Developer mode</b> (top right)</li>
+              <li>Click <b>Load unpacked</b> and pick the unzipped folder</li>
+              <li>Come back here and refresh the page 🎉 Stay signed in to chatgpt.com and/or claude.ai</li>
+            </ol>
+          </details>
+        </div>
+
+        <div id="extReady" class="extCard live hidden">
+          <div class="liveHead">
+            <span class="extTitle">🔌 Connected to your chats</span>
+            <span class="liveSrcs">
+              <label class="pickOpt mini"><input type="checkbox" name="liveSrc" value="chatgpt" checked /><span>💚 ChatGPT</span></label>
+              <label class="pickOpt mini"><input type="checkbox" name="liveSrc" value="claude" checked /><span>🧡 Claude</span></label>
+              <button type="button" class="chip" id="btnRefresh">🔄 Refresh</button>
+            </span>
+          </div>
+          <p id="liveStatus" class="muted small"></p>
+          <label class="check liveToggle"><input type="checkbox" id="liveGossip" /> 🔴 <b>Live gossip:</b> during the hangout, check for new chats every 5 min and turn them into fresh talking points automatically</label>
+        </div>
 
         <div id="convoPicker" class="convoPicker hidden">
           <div class="pickerHead">
@@ -114,10 +127,19 @@
           <div id="convoList" class="convoList"></div>
         </div>
 
-        <label>Or paste a chat 📋 <span class="muted">(optional)</span>
-          <textarea id="pastedChat" rows="3" placeholder="Me: can you be happy for once?? 🥺&#10;AI: I'm always happy to chat with you!"></textarea>
-        </label>
-        <button type="button" id="btnPoints" class="primary">✨ Turn my chats into talking points</button>
+        <details class="otherWays">
+          <summary>📦 Other ways: drop an export or paste a chat</summary>
+          <label class="drop" id="dropZone">
+            <input type="file" id="chatFile" accept=".zip,.json,application/zip,application/json" />
+            <span class="dropBig">📦 Drop your chat export here</span>
+            <span class="muted small">or click to choose a <b>.zip</b> or <b>conversations.json</b> (ChatGPT: Settings → Data controls → Export data · Claude: Settings → Privacy → Export data)</span>
+          </label>
+          <label>Paste a chat 📋
+            <textarea id="pastedChat" rows="3" placeholder="Me: can you be happy for once?? 🥺&#10;AI: I'm always happy to chat with you!"></textarea>
+          </label>
+        </details>
+
+        <button type="button" id="btnPoints" class="primary">✨ Turn ticked chats into talking points</button>
         <p id="pointsStatus" class="muted small"></p>
       </div>
 

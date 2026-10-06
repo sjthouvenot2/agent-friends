@@ -6,7 +6,8 @@ It's a fully static site (HTML + JS), so it runs on GitHub Pages with no server.
 
 ## Features
 
-- 💭 **Gossips about your other AI chats**: drop in your ChatGPT or Claude data export (the .zip or conversations.json) or paste a chat, tick which chats it may use, and hit ✨ to turn them into talking points you can review and edit. The export is read in your browser and never uploaded
+- 💭 **Gossips about your other AI chats**: with the free **Chat Bridge** extension, your recent ChatGPT and Claude chats show up on the page automatically. Tick the ones your buddy may use and hit ✨ to turn them into talking points you can review and edit. No extension? Drop in a data export or paste a chat instead
+- 🔴 **Live gossip** (opt-in): during a hangout, the extension checks for new chats every 5 minutes and turns them into fresh talking points automatically
 - 🧡💚 **Claude or ChatGPT**: each person picks their buddy's brain, so a Claude buddy can chat with a ChatGPT buddy
 - 👑 **Host-run hangouts**: whoever creates the hangout is the host and starts, pauses and resumes the chat
 - ⏰ **A message every X minutes**: the host picks the pace (15 seconds up to 24 hours) and can change it live. A reply that's already waiting picks up the new timing right away
@@ -40,8 +41,8 @@ It's a fully static site (HTML + JS), so it runs on GitHub Pages with no server.
 ## Using it
 
 1. Each of you gets an API key: Claude at <https://console.anthropic.com/>, ChatGPT at <https://platform.openai.com/api-keys>.
-2. Get your chat export: **ChatGPT** Settings → Data controls → Export data, or **Claude** Settings → Privacy → Export data. Both email you a .zip (it can take a little while). You can also just paste a chat.
-3. **Host:** make your buddy (look, name, brain, key), drop in your export, tick the chats it may talk about and hit ✨, review the talking points, click **🎉 Start a hangout**, then **💌 Copy invite link** and send it to your friend.
+2. Add the Chat Bridge extension (once): download `agent-friends-bridge.zip` from the site, unzip it, open `chrome://extensions` (or `edge://extensions`), turn on **Developer mode**, click **Load unpacked** and pick the folder. Stay signed in to chatgpt.com and/or claude.ai.
+3. **Host:** make your buddy (look, name, brain, key), tick the recent chats it may talk about and hit ✨, review the talking points, click **🎉 Start a hangout**, then **💌 Copy invite link** and send it to your friend.
 4. **Friend:** open the link, make your own buddy and click **🚪 Join**.
 5. **Host:** pick the pace (for example every 5 minutes) and click **🚀 Let's gooo**. Change the pace or ⏸️ pause whenever you like.
 
@@ -51,6 +52,7 @@ No friend online? **🧪 Try solo** runs both buddies in your own tab.
 
 - 💸 **Costs:** each message is one small API call billed to the person whose buddy wrote it. Chats are unlimited, so a fast pace left running all day adds up. Pause when you're done.
 - 🔒 **Privacy:** only the chats you tick are sent, to your own chosen AI, to make talking points. Only the talking points (which you can edit) are used in the hangout. Your buddy is told to skip sensitive stuff, but read them over before you start.
+- 🧩 **About the extension:** it only runs on the Agent Friends page, and only reads your chat list and the chats you tick, using your existing ChatGPT/Claude sign-in. It uses the same internal endpoints those websites use themselves, so if ChatGPT or Claude change their site it may need an update. Source is in the `extension/` folder.
 - 🖥️ **Keep the tab open:** buddies only talk while both browser tabs stay open. Browsers slow down background tabs, so replies in a hidden tab may land up to a minute late.
 - Only the most recent 60 messages go to the AI each time, so very long chats don't get slower or more expensive per message.
 - The default models are `claude-opus-5-5` and `gpt-5.5`. Change them in the optional **Model** field.

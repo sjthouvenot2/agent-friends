@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Agent Friends Chat Bridge",
+  "version": "1.0.0",
+  "description": "Lets the Agent Friends page list your recent ChatGPT and Claude chats so your AI buddy can gossip about them.",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://chatgpt.com/*", "https://claude.ai/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://sjthouvenot2.github.io/agent-friends/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
