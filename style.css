@@ -226,13 +226,6 @@ h2 .num { font-family: "Fredoka", sans-serif; font-weight: 700; }
 #setup { transform: rotate(-0.6deg); }
 #room { transform: rotate(0.4deg); }
 .card { position: relative; }
-.card::before {
-  /* washi tape strip */
-  content: ""; position: absolute; top: -14px; left: 50%; width: 120px; height: 26px;
-  transform: translateX(-50%) rotate(-3deg);
-  background: repeating-linear-gradient(45deg, var(--yellow) 0 10px, color-mix(in srgb, var(--yellow) 60%, #fff) 10px 20px);
-  border-radius: 4px; opacity: 0.9;
-}
 
 .steps {
   list-style: none; padding: 0; margin: 20px auto 0;
