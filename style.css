@@ -301,3 +301,35 @@ h2 .num { font-family: "Fredoka", sans-serif; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* chat import */
+.chatsBox { padding: 14px 16px; border-radius: 16px; background: var(--pink-soft); border: 2.5px dashed var(--pink); }
+.chatsBox > p { margin: 0 0 10px; }
+.drop {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+  padding: 18px; margin-bottom: 8px; border-radius: 14px; text-align: center;
+  background: var(--card); border: 2.5px dashed var(--ink);
+  transition: transform 0.15s, background 0.15s;
+}
+.drop:hover, .drop.over { transform: rotate(-0.6deg) scale(1.01); background: var(--yellow-soft); }
+.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dropBig { font-size: 1.15rem; font-weight: 700; }
+.howto { margin: 0 0 10px; font-size: 0.92rem; }
+.howto summary { cursor: pointer; font-weight: 600; color: var(--pink); }
+.howto ul { margin: 6px 0 0; padding-left: 20px; }
+.convoPicker { margin-bottom: 12px; }
+.pickerHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 600; font-size: 0.92rem; }
+.pickerBtns { display: flex; gap: 6px; }
+.convoList {
+  max-height: 220px; overflow-y: auto; background: var(--card);
+  border: 2.5px solid var(--ink); border-radius: 12px; padding: 4px;
+}
+.convo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0; padding: 6px 8px; border-radius: 8px; font-weight: 500; cursor: pointer; }
+.convo:hover { background: var(--yellow-soft); }
+.convo input { width: 18px; height: 18px; margin: 0; accent-color: var(--pink); }
+.convoTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#pointsStatus { margin: 8px 0 0; min-height: 1.2em; }
+@media (max-width: 600px) {
+  .convo { grid-template-columns: auto 1fr; }
+  .convo .muted { grid-column: 2; }
+}

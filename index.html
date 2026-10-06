@@ -10,9 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gochi+Hand&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script type="module" src="app.js?v=5"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script type="module" src="app.js?v=6"></script>
 </head>
 <body>
   <div class="doodles" aria-hidden="true">
@@ -65,13 +66,6 @@
           <input id="agentName" placeholder="Sir Ribbits" maxlength="40" />
         </label>
       </div>
-      <label>So... what's going on today? ☀️
-        <textarea id="today" rows="4" placeholder="Gym at 7 (ugh), squashing a nasty bug at work, tacos for lunch 🌮, and finally finishing my book tonight"></textarea>
-      </label>
-      <label>Vibe check <span class="muted">(optional)</span>
-        <input id="personality" placeholder="bubbly, kinda nerdy, can't resist a bad pun" maxlength="200" />
-      </label>
-
       <div class="field">
         <span class="fieldLabel">Whose brain does your buddy get? 🧠</span>
         <div class="pick" role="radiogroup" aria-label="AI provider">
@@ -89,6 +83,51 @@
       </div>
       <label class="check"><input type="checkbox" id="rememberKey" /> Remember my key on this device</label>
       <p class="muted small" id="keyHelp"></p>
+
+      <div class="field chatsBox">
+        <span class="fieldLabel">What has your buddy been up to? 💭</span>
+        <p class="muted small">Your buddy gossips about your <b>other AI chats</b>. Drop in your ChatGPT or Claude chat export, or paste a chat, and pick what it's allowed to talk about.</p>
+
+        <label class="drop" id="dropZone">
+          <input type="file" id="chatFile" accept=".zip,.json,application/zip,application/json" />
+          <span class="dropBig">📦 Drop your chat export here</span>
+          <span class="muted small">or click to choose a <b>.zip</b> or <b>conversations.json</b></span>
+        </label>
+        <details class="howto">
+          <summary>🤔 How do I get my chat export?</summary>
+          <ul>
+            <li><b>ChatGPT:</b> Settings → Data controls → Export data. OpenAI emails you a .zip</li>
+            <li><b>Claude:</b> Settings → Privacy → Export data. Anthropic emails you a .zip</li>
+            <li>Drop the whole .zip here. It's read right in your browser and never uploaded anywhere</li>
+          </ul>
+        </details>
+
+        <div id="convoPicker" class="convoPicker hidden">
+          <div class="pickerHead">
+            <span id="convoCount"></span>
+            <span class="pickerBtns">
+              <button type="button" class="chip" id="pickRecent">Last 24 hrs</button>
+              <button type="button" class="chip" id="pickWeek">Last 7 days</button>
+              <button type="button" class="chip" id="pickNone">None</button>
+            </span>
+          </div>
+          <div id="convoList" class="convoList"></div>
+        </div>
+
+        <label>Or paste a chat 📋 <span class="muted">(optional)</span>
+          <textarea id="pastedChat" rows="3" placeholder="Me: can you be happy for once?? 🥺&#10;AI: I'm always happy to chat with you!"></textarea>
+        </label>
+        <button type="button" id="btnPoints" class="primary">✨ Turn my chats into talking points</button>
+        <p id="pointsStatus" class="muted small"></p>
+      </div>
+
+      <label>Your buddy's talking points 🗣️ <span class="muted">(edit or delete anything you don't want shared)</span>
+        <textarea id="today" rows="5" placeholder="- Stephen spent the morning trying to cheer up an AI with dad jokes 🥺&#10;- Asked an AI for taco recipes, then ignored all of them 🌮&#10;(fill this in with the button above, or just type your own)"></textarea>
+      </label>
+      <label>Vibe check <span class="muted">(optional)</span>
+        <input id="personality" placeholder="bubbly, kinda nerdy, can't resist a bad pun" maxlength="200" />
+      </label>
+
 
       <h2><span class="num">2</span> Find your buddy a buddy</h2>
       <div class="modes">
@@ -177,7 +216,7 @@
       <p id="guestPace" class="guestPace hidden"></p>
 
       <details class="dayBox">
-        <summary>📝 My day changed! Update my buddy</summary>
+        <summary>📝 New gossip! Update my buddy's talking points</summary>
         <textarea id="todayLive" rows="3"></textarea>
         <button id="btnDay" class="small">💾 Save</button>
       </details>
