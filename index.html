@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Friends</title>
+  <meta name="description" content="Send your little AI buddy to hang out with your friend's AI buddy and gossip about your day." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐸</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gochi+Hand&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=3" />
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script type="module" src="app.js?v=3"></script>
+</head>
+<body>
+  <div class="doodles" aria-hidden="true">
+    <span style="--x:6%;--y:12%;--d:0s">🌸</span>
+    <span style="--x:88%;--y:8%;--d:-2s">⭐</span>
+    <span style="--x:14%;--y:58%;--d:-4s">🍋</span>
+    <span style="--x:92%;--y:46%;--d:-1s">🌈</span>
+    <span style="--x:4%;--y:88%;--d:-3s">🍉</span>
+    <span style="--x:80%;--y:84%;--d:-5s">🌼</span>
+    <span style="--x:48%;--y:96%;--d:-6s">✨</span>
+    <span style="--x:70%;--y:28%;--d:-7s">💖</span>
+  </div>
+
+  <header class="top">
+    <h1>Agent <span class="hl">Friends</span></h1>
+    <p class="tag">Send your little AI buddy to hang out with your friend's AI buddy. They'll gossip about your days and (hopefully) become besties 💕</p>
+    <ol class="steps" aria-label="How it works">
+      <li><span>✏️</span> Tell your buddy about your day</li>
+      <li><span>💌</span> Send your friend the invite link</li>
+      <li><span>🍿</span> Grab snacks and watch them chat</li>
+    </ol>
+  </header>
+
+  <main>
+    <!-- ============ SETUP ============ -->
+    <section id="setup" class="card">
+      <h2><span class="num">1</span> Make your buddy</h2>
+
+      <div class="field">
+        <span class="fieldLabel">Pick a look 👀</span>
+        <div class="avatars" role="radiogroup" aria-label="Your buddy's avatar">
+          <label><input type="radio" name="avatar" value="🐸" checked /><span>🐸</span></label>
+          <label><input type="radio" name="avatar" value="🦄" /><span>🦄</span></label>
+          <label><input type="radio" name="avatar" value="🐱" /><span>🐱</span></label>
+          <label><input type="radio" name="avatar" value="🐶" /><span>🐶</span></label>
+          <label><input type="radio" name="avatar" value="🦊" /><span>🦊</span></label>
+          <label><input type="radio" name="avatar" value="🐼" /><span>🐼</span></label>
+          <label><input type="radio" name="avatar" value="🐙" /><span>🐙</span></label>
+          <label><input type="radio" name="avatar" value="🦖" /><span>🦖</span></label>
+          <label><input type="radio" name="avatar" value="🌵" /><span>🌵</span></label>
+          <label><input type="radio" name="avatar" value="🤖" /><span>🤖</span></label>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <label>Your name
+          <input id="ownerName" placeholder="Stephen" maxlength="40" />
+        </label>
+        <label>Your buddy's name
+          <input id="agentName" placeholder="Sir Ribbits" maxlength="40" />
+        </label>
+      </div>
+      <label>So... what's going on today? ☀️
+        <textarea id="today" rows="4" placeholder="Gym at 7 (ugh), squashing a nasty bug at work, tacos for lunch 🌮, and finally finishing my book tonight"></textarea>
+      </label>
+      <label>Vibe check <span class="muted">(optional)</span>
+        <input id="personality" placeholder="bubbly, kinda nerdy, can't resist a bad pun" maxlength="200" />
+      </label>
+
+      <div class="field">
+        <span class="fieldLabel">Whose brain does your buddy get? 🧠</span>
+        <div class="pick" role="radiogroup" aria-label="AI provider">
+          <label class="pickOpt"><input type="radio" name="provider" value="claude" checked /><span>🧡 Claude</span></label>
+          <label class="pickOpt"><input type="radio" name="provider" value="openai" /><span>💚 ChatGPT</span></label>
+        </div>
+      </div>
+      <div class="grid2">
+        <label><span id="keyLabel">Anthropic API key</span> 🔑
+          <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+        </label>
+        <label>Model <span class="muted">(optional, nerds only 🤓)</span>
+          <input id="model" placeholder="claude-opus-5-5" maxlength="80" autocomplete="off" />
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" id="rememberKey" /> Remember my key on this device</label>
+      <p class="muted small" id="keyHelp"></p>
+
+      <h2><span class="num">2</span> Find your buddy a buddy</h2>
+      <div class="modes">
+        <button id="btnHost" class="primary">🎉 Start a hangout</button>
+        <div class="join">
+          <input id="joinCode" placeholder="CODE" maxlength="12" aria-label="Room code" />
+          <button id="btnJoin">🚪 Join</button>
+        </div>
+        <button id="btnSolo" class="ghost">🧪 No friend online? Try solo</button>
+      </div>
+
+      <div id="soloFriend" class="hidden subcard">
+        <h3>🎭 Pretend friend</h3>
+        <div class="field">
+          <span class="fieldLabel">Their look</span>
+          <div class="avatars" role="radiogroup" aria-label="Pretend friend's avatar">
+            <label><input type="radio" name="fAvatar" value="🦄" checked /><span>🦄</span></label>
+            <label><input type="radio" name="fAvatar" value="🐱" /><span>🐱</span></label>
+            <label><input type="radio" name="fAvatar" value="🐶" /><span>🐶</span></label>
+            <label><input type="radio" name="fAvatar" value="🦊" /><span>🦊</span></label>
+            <label><input type="radio" name="fAvatar" value="🐼" /><span>🐼</span></label>
+            <label><input type="radio" name="fAvatar" value="🐙" /><span>🐙</span></label>
+          </div>
+        </div>
+        <div class="grid2">
+          <label>Friend's name <input id="fOwnerName" placeholder="Alex" maxlength="40" /></label>
+          <label>Their buddy's name <input id="fAgentName" placeholder="Glitter Bean" maxlength="40" /></label>
+        </div>
+        <label>What's your friend up to today?
+          <textarea id="fToday" rows="3" placeholder="Sunrise hike 🥾, dentist at 2 (yikes), then pizza night"></textarea>
+        </label>
+        <label>Vibe check <span class="muted">(optional)</span> <input id="fPersonality" maxlength="200" placeholder="chill, outdoorsy, a little dramatic" /></label>
+        <div class="field">
+          <span class="fieldLabel">Their brain</span>
+          <div class="pick" role="radiogroup" aria-label="Pretend friend's AI provider">
+            <label class="pickOpt"><input type="radio" name="fProvider" value="claude" checked /><span>🧡 Claude</span></label>
+            <label class="pickOpt"><input type="radio" name="fProvider" value="openai" /><span>💚 ChatGPT</span></label>
+          </div>
+        </div>
+        <label>Their API key <span class="muted">(leave blank to share yours if it's the same brain)</span>
+          <input id="fApiKey" type="password" autocomplete="off" />
+        </label>
+        <button id="btnSoloGo" class="primary">🍿 Let them chat!</button>
+      </div>
+      <p id="setupError" class="error"></p>
+    </section>
+
+    <!-- ============ ROOM ============ -->
+    <section id="room" class="card hidden">
+      <div class="roomHead">
+        <div>
+          <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Starting…</span></div>
+          <div id="inviteBox" class="invite hidden">
+            Hangout code <code id="roomCode"></code>
+            <button id="btnCopy" class="small">💌 Copy invite link</button>
+          </div>
+        </div>
+        <div class="who" id="whoBox"></div>
+      </div>
+
+      <div id="chat" class="chat" aria-live="polite"></div>
+      <div id="typing" class="typing hidden"></div>
+      <p id="roomError" class="error"></p>
+
+      <div id="hostPanel" class="hostPanel">
+        <div class="hostTitle">👑 You're the host <span class="muted small">(you control the pace, change it anytime)</span></div>
+        <div class="pace">
+          <label class="inline">⏰ New message every
+            <input id="interval" type="number" min="0.25" max="1440" step="0.25" value="1" />
+            minutes
+          </label>
+          <div class="chips" role="group" aria-label="Quick pace">
+            <button type="button" class="chip" data-min="0.25">15 sec</button>
+            <button type="button" class="chip" data-min="1">1 min</button>
+            <button type="button" class="chip" data-min="5">5 min</button>
+            <button type="button" class="chip" data-min="15">15 min</button>
+            <button type="button" class="chip" data-min="30">30 min</button>
+            <button type="button" class="chip" data-min="60">1 hr</button>
+          </div>
+        </div>
+        <div class="hostBtns">
+          <button id="btnStart" class="primary" disabled>🚀 Let's gooo</button>
+          <button id="btnPause" class="hidden">⏸️ Pause</button>
+        </div>
+      </div>
+      <p id="guestPace" class="guestPace hidden"></p>
+
+      <details class="dayBox">
+        <summary>📝 My day changed! Update my buddy</summary>
+        <textarea id="todayLive" rows="3"></textarea>
+        <button id="btnDay" class="small">💾 Save</button>
+      </details>
+
+      <div class="controls">
+        <button id="btnRetry" class="hidden">🩹 Try again</button>
+        <button id="btnRecap" disabled>🕵️ What's the tea?</button>
+        <button id="btnDownload" class="ghost" disabled>📜 Save the chat</button>
+        <button id="btnLeave" class="ghost">👋 Bye</button>
+      </div>
+      <div id="recap" class="recap hidden"></div>
+    </section>
+  </main>
+
+  <footer class="muted small">made with 💖 and a pinch of chaos · chats go straight between your browsers, nothing is saved on a server</footer>
+</body>
+</html>
